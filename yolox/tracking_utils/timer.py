@@ -27,7 +27,7 @@ class Timer(object):
             self.duration = self.average_time
         else:
             self.duration = self.diff
-        logger.info(f"Duration : {self.duration}")
+        # logger.info(f"Duration : {self.duration}")
         return self.duration
 
     def clear(self):
