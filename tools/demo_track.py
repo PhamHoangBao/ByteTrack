@@ -243,15 +243,22 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
     )
     tracker = BYTETracker(args, frame_rate=30)
     timer = Timer()
+    detector_timer = Timer()
+    tracker_timer = Timer()
     frame_id = 0
     results = []
     while True:
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
+            logger.info('Processing detector frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, detector_timer.average_time)))
+            logger.info('Processing tracker frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, tracker_timer.average_time)))
         ret_val, frame = cap.read()
         if ret_val:
+            detector_timer.tic()
             outputs, img_info = predictor.inference(frame, timer)
+            detector_timer.toc()
             if outputs[0] is not None:
+                tracker_timer.tic()
                 online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], exp.test_size)
                 online_tlwhs = []
                 online_ids = []
@@ -265,9 +272,10 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                         online_ids.append(tid)
                         online_scores.append(t.score)
                 results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
+                tracker_timer.toc()
                 timer.toc()
                 online_im = plot_tracking(img_info['raw_img'], online_tlwhs, online_ids, frame_id=frame_id + 1,
-                                          fps=1. / timer.average_time)
+                                          fps=1. / timer.average_time, detector_fps=1. / detector_timer.average_time, tracker_fps=1. / tracker_timer.average_time)
             else:
                 timer.toc()
                 online_im = img_info['raw_img']
