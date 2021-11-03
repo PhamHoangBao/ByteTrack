@@ -139,7 +139,7 @@ class Predictor(object):
         self.rgb_means = (0.485, 0.456, 0.406)
         self.std = (0.229, 0.224, 0.225)
 
-    def inference(self, img, timer):
+    def inference(self, img, timer, detector_timer):
         img_info = {"id": 0}
         if isinstance(img, str):
             img_info["file_name"] = os.path.basename(img)
@@ -163,6 +163,7 @@ class Predictor(object):
 
         with torch.no_grad():
             timer.tic()
+            detector_timer.tic()
             outputs = self.model(img)
             if self.decoder is not None:
                 outputs = self.decoder(outputs, dtype=outputs.type())
@@ -254,11 +255,11 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
             logger.info('Processing tracker frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, tracker_timer.average_time)))
         ret_val, frame = cap.read()
         if ret_val:
-            detector_timer.tic()
-            outputs, img_info = predictor.inference(frame, timer)
+            # detector_timer.tic()
+            outputs, img_info = predictor.inference(frame, timer, detector_timer)
             detector_timer.toc()
+            tracker_timer.tic()
             if outputs[0] is not None:
-                tracker_timer.tic()
                 online_targets = tracker.update(outputs[0], [img_info['height'], img_info['width']], exp.test_size)
                 online_tlwhs = []
                 online_ids = []
@@ -277,6 +278,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 online_im = plot_tracking(img_info['raw_img'], online_tlwhs, online_ids, frame_id=frame_id + 1,
                                           fps=1. / timer.average_time, detector_fps=1. / detector_timer.average_time, tracker_fps=1. / tracker_timer.average_time)
             else:
+                tracker_timer.toc()
                 timer.toc()
                 online_im = img_info['raw_img']
             if args.save_result:
