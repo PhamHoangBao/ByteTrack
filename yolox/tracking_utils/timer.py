@@ -1,4 +1,5 @@
 import time
+from loguru import logger
 
 
 class Timer(object):
@@ -26,7 +27,7 @@ class Timer(object):
             self.duration = self.average_time
         else:
             self.duration = self.diff
-        print(f"Duration : {self.duration}")
+        logger.info(f"Duration : {self.duration}")
         return self.duration
 
     def clear(self):
